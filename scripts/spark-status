@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=spark-common.sh
+source "${SCRIPT_DIR}/spark-common.sh"
+
+watch=0
+requested="latest"
+while (( $# )); do
+    case "$1" in
+        --watch|-w) watch=1; shift ;;
+        -h|--help)
+            echo "Usage: scripts/spark-status [JOB_ID|latest] [--watch]"
+            exit 0
+            ;;
+        *) requested="$1"; shift ;;
+    esac
+done
+
+job_id="$(spark_resolve_job_id "${requested}")"
+spark_validate_job_id "${job_id}"
+remote_job_q="$(spark_quote "${SPARK_REMOTE_JOBS_DIR}/${job_id}")"
+
+show_status() {
+    "${SPARK_SSH_BIN}" "${SPARK_HOST}" \
+        "test -d ${remote_job_q} || exit 44; printf 'job_id=${job_id}\\nstate='; cat ${remote_job_q}/state 2>/dev/null || printf 'queued\\n'; test ! -f ${remote_job_q}/started_at || { printf 'started_at='; cat ${remote_job_q}/started_at; }; test ! -f ${remote_job_q}/finished_at || { printf 'finished_at='; cat ${remote_job_q}/finished_at; }; test ! -f ${remote_job_q}/exit_code || { printf 'exit_code='; cat ${remote_job_q}/exit_code; }; printf '%s\\n' '--- stdout (tail) ---'; tail -n 30 ${remote_job_q}/stdout.log 2>/dev/null || true; printf '%s\\n' '--- stderr (tail) ---'; tail -n 30 ${remote_job_q}/stderr.log 2>/dev/null || true"
+}
+
+if (( ! watch )); then
+    show_status || spark_die "job not found: ${job_id}"
+    exit 0
+fi
+
+while true; do
+    clear 2>/dev/null || true
+    output="$(show_status)" || spark_die "job not found: ${job_id}"
+    printf '%s\n' "${output}"
+    state="$(printf '%s\n' "${output}" | sed -n 's/^state=//p' | head -1)"
+    [[ "${state}" == "succeeded" || "${state}" == "failed" ]] && break
+    sleep 3
+done
+

@@ -1,0 +1,8 @@
+Package: vlx-dgx-spark-repro
+Created UTC: 2026-09-16T08:43:09Z
+Target: NVIDIA DGX Spark / Linux aarch64 / Python 3.12 / CUDA 13 / SM121
+Weights included: no
+Third-party cache included: yes
+Raw benchmark results included: no
+
+Start with docs/reproduction/PORTABLE_PACKAGE.md.

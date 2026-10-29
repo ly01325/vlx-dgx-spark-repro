@@ -1,0 +1,31 @@
+{
+  "added_scale_tensor_count": 558,
+  "bitwise_equal_unquantized_tensor_count": 808,
+  "environment": {
+    "nvidia_modelopt": "0.46.0",
+    "python": "3.12.3",
+    "safetensors": "0.7.0",
+    "torch": "2.12.0a0+0291f960b6.nv26.04.48445190"
+  },
+  "export_validation_counts": {
+    "bf16_vision_object_weights": 339,
+    "input_scale": 186,
+    "uint8_weights": 186,
+    "weight_scale": 186,
+    "weight_scale_2": 186
+  },
+  "output_checkpoint_sha256": "6cdd01d42b134f397311609aee7b1070826ebadeec8c2ccc243d1ac0ecb2acb1",
+  "output_model": "vlx-seek-1.5-3b-sanitized-native-nvfp4-w4a4-direct",
+  "output_tensor_count": 1552,
+  "quantized_weight_count": 186,
+  "reproduction_file_sha256": {
+    "quant_config.json": "140a419000a4136847363313d8290f52bf5deb17bae4a19a85136cb329530409",
+    "quantize_vlx_seek_native_nvfp4_w4a4.py": "236a24d639b1f0328ec517b0a8355f4d15ceb9520e01419bea23a5081757e4ec",
+    "run_export.py": "e55f3a1df7fe2a064bea13596d29282f35c469a000ac8c4b1ac778a14a584bfd",
+    "scope_manifest": "c8ddd7ad9cc375393fae6f13457846ba72de6dd0afab24ba3bdc65633405dffa"
+  },
+  "source_checkpoint_sha256": "35d6c838ffe95993164bf24e105b57e49389d30dc1f509e95b85380a10c66628",
+  "source_model": "vlx-seek-1.5-3b-sanitized",
+  "source_tensor_count": 994,
+  "status": "passed"
+}

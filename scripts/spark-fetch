@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=spark-common.sh
+source "${SCRIPT_DIR}/spark-common.sh"
+
+requested="${1:-latest}"
+[[ "${requested}" != "-h" && "${requested}" != "--help" ]] || {
+    echo "Usage: scripts/spark-fetch [JOB_ID|latest]"
+    exit 0
+}
+
+job_id="$(spark_resolve_job_id "${requested}")"
+spark_validate_job_id "${job_id}"
+destination="${SPARK_LOCAL_RESULTS_DIR}/${job_id}"
+mkdir -p "${destination}"
+
+"${SPARK_RSYNC_BIN}" -az \
+    "${SPARK_HOST}:${SPARK_REMOTE_JOBS_DIR}/${job_id}/" "${destination}/"
+
+echo "Fetched ${job_id}"
+echo "Results: ${destination}"
+if [[ -f "${destination}/state" ]]; then
+    printf 'State:   '
+    cat "${destination}/state"
+fi
+if [[ -f "${destination}/exit_code" ]]; then
+    printf 'Exit:    '
+    cat "${destination}/exit_code"
+fi
+

@@ -1,0 +1,13 @@
+{
+  "model_root": ".",
+  "source_model": "vlx-seek-1.5-3b-sanitized",
+  "output_model": "vlx-seek-1.5-3b-sanitized-native-nvfp4-w4a4-direct",
+  "exporter": "quantize_vlx_seek_native_nvfp4_w4a4.py",
+  "scope_reference": "language_all_linear_scope",
+  "group_size": 16,
+  "expected_count": 186,
+  "activation_scale": {
+    "mode": "direct",
+    "value": null
+  }
+}

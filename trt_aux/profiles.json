@@ -1,0 +1,19 @@
+{
+  "profiles": [
+    {
+      "name": "camera_480p_720p_1080p",
+      "min": [1, 1600, 1152],
+      "opt": [1, 3610, 1152],
+      "max": [1, 8170, 1152],
+      "accepted_lengths": [1600, 3610, 8170],
+      "examples": [
+        "854x480 is prepared to 848x480 (L=1600)",
+        "1280x720 stays 1280x720 (L=3610)",
+        "1920x1080 is prepared to 1920x1088 (L=8170)"
+      ]
+    }
+  ],
+  "selection": "Use TensorRT only when L is exactly 1600, 3610, or 8170; use PyTorch fallback for every other length.",
+  "formula": "L = 10 + (prepared_H / 16) * (prepared_W / 16)",
+  "batch_policy": "TensorRT B=1; loop over image batch in the wrapper."
+}

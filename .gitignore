@@ -1,0 +1,14 @@
+.spark.env
+.spark-jobs/
+.spark-results/
+.codex-build/
+artifacts/results/
+artifacts/logs/
+deliverables/~$*
+third_party/sources/*.tar.gz
+third_party/wheels/*.whl
+deliverables/vlx-dgx-spark-repro-*.tar.gz
+*.engine
+*.plan
+*.onnx
+*.timing

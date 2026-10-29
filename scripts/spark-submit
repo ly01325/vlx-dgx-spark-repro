@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=spark-common.sh
+source "${SCRIPT_DIR}/spark-common.sh"
+
+usage() {
+    cat <<'EOF'
+Usage:
+  scripts/spark-submit [--sync] [--name NAME] -- COMMAND [ARG ...]
+  scripts/spark-submit [--sync] [--name NAME] --shell 'SHELL COMMAND'
+
+Submit a background job to the configured DGX Spark. By default the remote
+project is not modified. Use --sync to rsync the local project first; paths in
+.sparkignore are excluded and rsync never deletes remote files.
+EOF
+}
+
+sync_project=0
+job_name="job"
+shell_command=""
+
+while (( $# )); do
+    case "$1" in
+        --sync)
+            sync_project=1
+            shift
+            ;;
+        --name)
+            (( $# >= 2 )) || spark_die "--name requires a value"
+            job_name="$2"
+            shift 2
+            ;;
+        --shell)
+            (( $# >= 2 )) || spark_die "--shell requires a command"
+            shell_command="$2"
+            shift 2
+            (( $# == 0 )) || spark_die "unexpected arguments after --shell"
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            spark_die "unknown option: $1"
+            ;;
+    esac
+done
+
+[[ "${job_name}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || \
+    spark_die "--name may contain only letters, numbers, dot, underscore, and dash"
+
+if [[ -z "${shell_command}" && $# -eq 0 ]]; then
+    usage >&2
+    exit 2
+fi
+
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+job_id="${timestamp}-${job_name}-$$"
+local_staging="${SPARK_LOCAL_RESULTS_DIR}/.staging-${job_id}"
+remote_job_dir="${SPARK_REMOTE_JOBS_DIR}/${job_id}"
+mkdir -p "${local_staging}"
+
+cleanup() {
+    rm -rf -- "${local_staging}"
+}
+trap cleanup EXIT
+
+if [[ -n "${shell_command}" ]]; then
+    printf '%s\n' "${shell_command}" > "${local_staging}/command.sh"
+else
+    {
+        printf 'exec'
+        for arg in "$@"; do
+            printf ' %q' "${arg}"
+        done
+        printf '\n'
+    } > "${local_staging}/command.sh"
+fi
+
+cat > "${local_staging}/run.sh" <<'EOF'
+#!/usr/bin/env bash
+set -uo pipefail
+
+job_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+project_dir="${SPARK_PROJECT_DIR:?SPARK_PROJECT_DIR is required}"
+export SPARK_JOB_DIR="${job_dir}"
+
+printf 'running\n' > "${job_dir}/state"
+date -u +%Y-%m-%dT%H:%M:%SZ > "${job_dir}/started_at"
+{
+    printf 'hostname=%s\n' "$(hostname)"
+    printf 'user=%s\n' "$(id -un)"
+    printf 'project_dir=%s\n' "${project_dir}"
+    printf 'kernel=%s\n' "$(uname -srmo 2>/dev/null || uname -a)"
+    printf 'python=%s\n' "$(python3 --version 2>&1 || true)"
+    if git -C "${project_dir}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        printf 'git_commit=%s\n' "$(git -C "${project_dir}" rev-parse HEAD)"
+        printf 'git_dirty=%s\n' "$(test -n "$(git -C "${project_dir}" status --porcelain)" && echo true || echo false)"
+    fi
+} > "${job_dir}/environment.txt"
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi > "${job_dir}/nvidia-smi-before.txt" 2>&1 || true
+fi
+
+set +e
+(
+    cd -- "${project_dir}"
+    bash "${job_dir}/command.sh"
+) > "${job_dir}/stdout.log" 2> "${job_dir}/stderr.log"
+exit_code=$?
+set -e
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi > "${job_dir}/nvidia-smi-after.txt" 2>&1 || true
+fi
+
+printf '%s\n' "${exit_code}" > "${job_dir}/exit_code"
+date -u +%Y-%m-%dT%H:%M:%SZ > "${job_dir}/finished_at"
+if (( exit_code == 0 )); then
+    printf 'succeeded\n' > "${job_dir}/state"
+else
+    printf 'failed\n' > "${job_dir}/state"
+fi
+exit "${exit_code}"
+EOF
+
+chmod 700 "${local_staging}/command.sh" "${local_staging}/run.sh"
+
+remote_project_q="$(spark_quote "${SPARK_PROJECT_DIR}")"
+remote_jobs_q="$(spark_quote "${SPARK_REMOTE_JOBS_DIR}")"
+remote_job_q="$(spark_quote "${remote_job_dir}")"
+
+if (( sync_project )); then
+    rsync_args=(-az)
+    if [[ -f "${SPARK_PROJECT_ROOT}/.sparkignore" ]]; then
+        rsync_args+=(--exclude-from="${SPARK_PROJECT_ROOT}/.sparkignore")
+    fi
+    echo "Syncing project to ${SPARK_HOST}:${SPARK_PROJECT_DIR}"
+    "${SPARK_SSH_BIN}" "${SPARK_HOST}" "mkdir -p ${remote_project_q}"
+    "${SPARK_RSYNC_BIN}" "${rsync_args[@]}" \
+        "${SPARK_PROJECT_ROOT}/" "${SPARK_HOST}:${SPARK_PROJECT_DIR}/"
+fi
+
+"${SPARK_SSH_BIN}" "${SPARK_HOST}" "mkdir -p ${remote_job_q}"
+"${SPARK_SCP_BIN}" -q "${local_staging}/command.sh" "${local_staging}/run.sh" \
+    "${SPARK_HOST}:${remote_job_dir}/"
+
+printf 'job_id=%s\nname=%s\nsubmitted_at=%s\n' \
+    "${job_id}" "${job_name}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "${local_staging}/metadata"
+"${SPARK_SCP_BIN}" -q "${local_staging}/metadata" \
+    "${SPARK_HOST}:${remote_job_dir}/metadata"
+
+launch_command="chmod 700 ${remote_job_q}/command.sh ${remote_job_q}/run.sh && printf '%s\\n' '${job_id}' > ${remote_jobs_q}/.latest && SPARK_PROJECT_DIR=${remote_project_q} nohup bash ${remote_job_q}/run.sh > ${remote_job_q}/launcher.log 2>&1 < /dev/null &"
+"${SPARK_SSH_BIN}" "${SPARK_HOST}" "${launch_command}"
+
+echo "Submitted: ${job_id}"
+echo "Status:    scripts/spark-status ${job_id}"
+echo "Fetch:     scripts/spark-fetch ${job_id}"
+

@@ -1,0 +1,18 @@
+.git/
+.spark.env
+.spark-jobs/
+.spark-results/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+
+# Models and generated artifacts are intentionally not copied by --sync.
+resources/
+artifacts/results/
+artifacts/logs/
+.codex-build/
+deliverables/
+quant/*.safetensors
+*.tar
+vlx_seek1_5.tar.gz

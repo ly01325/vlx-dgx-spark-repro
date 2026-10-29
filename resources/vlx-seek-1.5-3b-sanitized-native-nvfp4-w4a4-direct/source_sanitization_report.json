@@ -1,0 +1,91 @@
+{
+  "created_at_utc": "2026-09-10T02:34:26.957683+00:00",
+  "excluded_private_artifacts": [
+    "model.safetensors",
+    "model.safetensors.index.json",
+    "trainer_state.json",
+    "training_args.bin"
+  ],
+  "initialization_seed": 20260910,
+  "notes": [
+    "Output tensor names, shapes, and dtypes match the VLX template.",
+    "Official source tensors are cast to the template dtype where needed.",
+    "The official Qwen embedding is sliced to the VLX vocabulary size.",
+    "VLX-only projector and SimpleFPN tensors use fresh deterministic initialization.",
+    "No tensor payload was read from the private VLX checkpoint."
+  ],
+  "output_checkpoint": {
+    "bytes": 6423351804,
+    "file": "model.safetensors",
+    "sha256": "35d6c838ffe95993164bf24e105b57e49389d30dc1f509e95b85380a10c66628"
+  },
+  "private_tensor_payload_read": false,
+  "purpose": "VLX architecture handoff without private trained weights",
+  "source_checkpoints": {
+    "official_c_radio": {
+      "file": "model.safetensors",
+      "sha256": "23e0c117de49d4ce909150fe6658d470829e6639647c7a5b035ce82e0d5b763c"
+    },
+    "official_qwen": {
+      "file": "model.safetensors-00001-of-00001.safetensors",
+      "sha256": "aa33250c4fc64891ddfaba3a314fd9542ea371843c387178b425fbcc5ed680b1"
+    }
+  },
+  "support_files": [
+    "C-RADIOv4-SO400M/.gitattributes",
+    "C-RADIOv4-SO400M/README.md",
+    "C-RADIOv4-SO400M/adaptor_attn.py",
+    "C-RADIOv4-SO400M/adaptor_base.py",
+    "C-RADIOv4-SO400M/adaptor_generic.py",
+    "C-RADIOv4-SO400M/adaptor_mlp.py",
+    "C-RADIOv4-SO400M/adaptor_module_factory.py",
+    "C-RADIOv4-SO400M/adaptor_registry.py",
+    "C-RADIOv4-SO400M/cls_token.py",
+    "C-RADIOv4-SO400M/common.py",
+    "C-RADIOv4-SO400M/config.json",
+    "C-RADIOv4-SO400M/configuration.json",
+    "C-RADIOv4-SO400M/dinov2_arch.py",
+    "C-RADIOv4-SO400M/dual_hybrid_vit.py",
+    "C-RADIOv4-SO400M/enable_cpe_support.py",
+    "C-RADIOv4-SO400M/enable_damp.py",
+    "C-RADIOv4-SO400M/enable_spectral_reparam.py",
+    "C-RADIOv4-SO400M/eradio_model.py",
+    "C-RADIOv4-SO400M/extra_models.py",
+    "C-RADIOv4-SO400M/extra_timm_models.py",
+    "C-RADIOv4-SO400M/feature_normalizer.py",
+    "C-RADIOv4-SO400M/forward_intermediates.py",
+    "C-RADIOv4-SO400M/hf_model.py",
+    "C-RADIOv4-SO400M/input_conditioner.py",
+    "C-RADIOv4-SO400M/open_clip_adaptor.py",
+    "C-RADIOv4-SO400M/preprocessor_config.json",
+    "C-RADIOv4-SO400M/radio_model.py",
+    "C-RADIOv4-SO400M/siglip2_adaptor.py",
+    "C-RADIOv4-SO400M/utils.py",
+    "C-RADIOv4-SO400M/vit_patch_generator.py",
+    "C-RADIOv4-SO400M/vitdet.py",
+    "LICENSE-QWEN",
+    "Qwen3.5-2B-Vision_Tower/config.json",
+    "Qwen3.5-2B-Vision_Tower/preprocessor_config.json",
+    "chat_template.jinja",
+    "config.json",
+    "generation_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json"
+  ],
+  "tensor_counts": {
+    "fresh_initialization": 46,
+    "official_qwen": 618,
+    "official_radio": 330
+  },
+  "verification": {
+    "all_tensor_values_match_declared_non_private_sources": true,
+    "checked_by_source": {
+      "fresh_initialization": 46,
+      "official_qwen": 618,
+      "official_radio": 330
+    },
+    "keys_shapes_dtypes_match_template": true,
+    "status": "passed",
+    "tensor_count": 994
+  }
+}

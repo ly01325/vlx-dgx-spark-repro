@@ -1,0 +1,10 @@
+# Exact kernel packages used by the DGX Spark / SM121 benchmarks.
+# Install them through scripts/prepare-repro-env.sh so the package can also
+# populate third_party/wheels for the historical benchmark launchers.
+apache-tvm-ffi==0.1.13.post3
+flashinfer-python==0.6.18
+nvidia-cuda-nvdisasm==13.4.49
+nvidia-cutlass-dsl==4.7.1
+nvidia-cutlass-dsl-libs-core==4.7.1
+nvidia-cutlass-dsl-libs-base==4.7.1
+nvidia-cutlass-dsl-libs-cu13==4.7.1
